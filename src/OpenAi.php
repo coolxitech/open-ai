@@ -3,35 +3,33 @@
 namespace Orhanerday\OpenAi;
 
 use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 
 class OpenAi
 {
     private string $engine = "davinci";
-    private string $model = "text-davinci-002";
+    private string $model = "text-davinci-003";
     private string $chatModel = "gpt-3.5-turbo";
     private array $headers;
-    private array $contentTypes;
     private int $timeout = 0;
     private object $stream_method;
     public string $customUrl = "";
+    public array $request_option = [];
 
-    public function __construct($OPENAI_API_KEY, $OPENAI_ORG = "", $customUrl = "")
+    public function __construct($OPENAI_API_KEY, $OPENAI_ORG = "", $customUrl = "", $request_option = [])
     {
-        $this->contentTypes = [
-            "application/json" => "Content-Type: application/json",
-            "multipart/form-data" => "Content-Type: multipart/form-data",
-        ];
-
-        $this->headers = [
-            $this->contentTypes["application/json"],
-            "Authorization: Bearer $OPENAI_API_KEY",
-        ];
+        $this->headers['Authorization'] = "Bearer $OPENAI_API_KEY";
 
         if ($OPENAI_ORG != "") {
-            $this->headers[] = "OpenAI-Organization: $OPENAI_ORG";
+            $this->headers['OpenAI-Organization'] = $OPENAI_ORG;
         }
         if ($customUrl != "") {
             $this->customUrl = $customUrl;
+        }
+
+        if ($request_option != []) {
+            $this->request_option = $request_option;
         }
     }
 
@@ -200,7 +198,6 @@ class OpenAi
 
         return $this->sendRequest($url, 'POST', $opts);
     }
-
 
     /**
      * @param $opts
@@ -418,42 +415,38 @@ class OpenAi
      */
     private function sendRequest(string $url, string $method, array $opts = [])
     {
-        $post_fields = json_encode($opts);
-
-        if (array_key_exists('file', $opts) || array_key_exists('image', $opts)) {
-            $this->headers[0] = $this->contentTypes["multipart/form-data"];
-            $post_fields = $opts;
+        if ($this->customUrl != "") {
+            $client = new Client([
+                'base_uri' => $this->customUrl,
+            ]);
         } else {
-            $this->headers[0] = $this->contentTypes["application/json"];
+            $client = new Client();
         }
-        $curl_info = [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_POSTFIELDS => $post_fields,
-            CURLOPT_HTTPHEADER => $this->headers,
+
+        $request_option = [
+            'timeout' => $this->timeout,
+            'headers' => $this->headers,
+            'allow_redirects' => true,
         ];
-
-        if ($opts == []) {
-            unset($curl_info[CURLOPT_POSTFIELDS]);
+        $request_option = array_merge($request_option, $this->request_option);
+        if (array_key_exists('file', $opts) || array_key_exists('image', $opts)) {
+            $request_option['form_params'] = $opts;
+        } else {
+            $request_option['json'] = $opts;
         }
-
         if (array_key_exists('stream', $opts) && $opts['stream']) {
-            $curl_info[CURLOPT_WRITEFUNCTION] = $this->stream_method;
+            $request_option['config']['curl'][CURLOPT_WRITEFUNCTION] = $this->stream_method;
         }
 
-        $curl = curl_init();
 
-        curl_setopt_array($curl, $curl_info);
-        $response = curl_exec($curl);
-        curl_close($curl);
+        try {
+            $result = $client->request($method, $url, $request_option)->getBody()->getContents();
+        } catch (GuzzleException $e) {
+            return $e->getMessage();
+//            return false;
+        }
 
-        return $response;
+        return $result;
     }
 
     /**

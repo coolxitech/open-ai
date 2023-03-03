@@ -3,7 +3,7 @@
 
 use Orhanerday\OpenAi\OpenAi;
 
-$open_ai = new OpenAi('OPEN-AI-KEY');
+$open_ai = new OpenAi('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', 'org-7dY6pDWWzSgQ4O1Qn4s34Jij', "https://openai.kuxi.tech/");
 
 it('should handle simple completion using the new endpoint', function () use ($open_ai) {
     $result = $open_ai->completion([
@@ -13,7 +13,6 @@ it('should handle simple completion using the new endpoint', function () use ($o
         "frequency_penalty" => 0,
         "presence_penalty" => 0.6,
     ]);
-
     $this->assertStringContainsString('text', $result);
 })->group('working');
 
@@ -235,8 +234,8 @@ it('should handle simple chat completion using the new endpoint', function () us
         'messages' => [
             [
                 "role" => "user",
-                "content" => "Hello!"
-            ]
+                "content" => "Hello!",
+            ],
         ],
         'temperature' => 0.9,
         "max_tokens" => 150,
