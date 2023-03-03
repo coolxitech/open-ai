@@ -1,8 +1,8 @@
 {
-    "name": "orhanerday/open-ai",
+    "name": "coolxitech/open-ai",
     "description": "OpenAI GPT-3 Api Client in PHP",
     "keywords": [
-        "orhanerday",
+        "coolxitech",
         "open-ai"
     ],
     "homepage": "https://github.com/orhanerday/open-ai",
@@ -12,6 +12,11 @@
             "name": "Orhan Erday",
             "email": "orhanerday@gmail.com",
             "role": "Developer"
+        },
+        {
+            "name": "Coolxi Tech",
+            "email": "admin@kuxi.tech",
+            "role": "Improver"
         }
     ],
     "require": {
